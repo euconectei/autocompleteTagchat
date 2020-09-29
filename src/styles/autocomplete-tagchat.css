@@ -1,0 +1,39 @@
+#message {
+  position: absolute;
+  top: 200px;
+  left: 200px;
+}
+
+#athidden {
+  background-color: red;
+  display: inline-block;
+  position: absolute;
+  visibility: hidden;
+}
+
+.proposal-box {
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  display: inline-block;
+  position: absolute;
+  z-index: 9999;
+}
+
+.proposal-list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.proposal-list li {
+  border-bottom: 1px solid #ccc;
+  padding: 5px;
+}
+
+.proposal-list li:last-child {
+  border-bottom: none;
+}
+
+.proposal-item.selected {
+  background-color: deepskyblue;
+}
