@@ -3,128 +3,144 @@
 		params = $.extend(
 			{
 				hints: [],
-				startsWith: null,
+				untilScrolling: 10,
 			},
 			params
 		);
-		let currentSelection = -1;
+		let currentSelection = 0;
 		let currentProposals = [];
-		const _input = this;
 
-		const elemHidden = "athidden";
-		_input.before(`<div id="${elemHidden}"/>`);
-		_input.attr("autocomplete", "off");
+		this.each(function (i, elem) {
+			const _input = $(`#${elem.id}`);
 
-		const proposals = $("<div></div>").addClass("proposal-box").css({
-			width: 200,
-			top: 50,
-		});
-		const proposalList = $("<ul></ul>").addClass("proposal-list");
-		proposals.append(proposalList);
+			const elemIdHidden = "athidden";
+			_input.before(`<div id="${elemIdHidden}"/>`);
+			_input.attr("autocomplete", "off");
 
-		_input.keydown(function (e) {
-			switch (e.which) {
-				case 38: // Up arrow
-					e.preventDefault();
-					console.log("Up arrow");
-					$("ul.proposal-list li").removeClass("selected");
-					if (currentSelection - 1 >= 0) {
-						currentSelection--;
-						$(`ul.proposal-list li:eq(${currentSelection})`).addClass(
-							"selected"
-						);
-					} else {
-						currentSelection = -1;
-					}
-					break;
-				case 40: // Down arrow
-					e.preventDefault();
-					console.log("Down arrow");
-					if (currentSelection + 1 < currentProposals.length) {
-						$("ul.proposal-list li").removeClass("selected");
-						currentSelection++;
-						$(`ul.proposal-list li:eq(${currentSelection})`).addClass(
-							"selected"
-						);
-					}
-					break;
-				case 13: // Enter
-					console.log("Enter");
-					if (currentSelection > -1) {
-						const text = $(`ul.proposal-list li:eq(${currentSelection})`).html;
-						_input.val(`${_input.val().trim()} ${text}`);
-					}
-					currentSelection = -1;
-					proposalList.empty();
-					break;
-				case 27: // Esc button
-					console.log("Esc");
-					currentSelection = -1;
-					proposalList.empty();
-					break;
-			}
-		});
+			const elemHidden = $(`#${elemIdHidden}`);
+			elemHidden.css({
+				left: _input.offset().left,
+				top: _input.offset().top,
+			});
 
-		_input.bind("paste keyup", function (e) {
-			if (e.which != 13 && e.which != 27 && e.which != 38 && e.which != 40) {
-				currentProposals = [];
-				currentSelection = -1;
+			const proposals = $("<div></div>").addClass("proposal-box");
+			const proposalList = $("<ul></ul>").addClass("proposal-list");
+			proposals.append(proposalList);
 
-				const wordsArr = _input.val().split(" ");
-				if (_input.val() !== "" && wordsArr[wordsArr.length - 1].length > 0) {
-					console.log({ wordsArr });
-					const regexp = new RegExp(`^${wordsArr[wordsArr.length - 1]}+`);
-					console.log({ regexp });
-					proposalList.empty();
+			const clean = function () {
+				currentSelection = 0;
+				proposalList.empty();
+				$(".proposal-box").hide();
+			};
 
-					for (const hint in params.hints) {
-						console.log(regexp.test(params.hints[hint]));
-						if (regexp.test(params.hints[hint])) {
-							currentProposals.push(params.hints[hint]);
-							const proposalItem = $("<li></li>")
-								.addClass("proposal-item")
-								.html(params.hints[hint])
-								.click(function () {
-									_input.val(`${_input.val().trim()} ${$(this).html()}`);
-								})
-								.mouseenter(function () {
-									$(this).addClass("selected");
-								})
-								.mouseleave(function () {
-									$(this).removeClass("selected");
-								});
-							proposalList.append(proposalItem);
+			const addSelectedText = function (oldText, selectedText) {
+				const oldTextArr = oldText.split(" ");
+				oldTextArr.pop();
+				const newText = oldTextArr.toString().replaceAll(",", " ");
+				return `${newText} ${selectedText} `;
+			};
+
+			const setProposalsPosition = function () {
+				$(".proposal-box").css({
+					left: elemHidden.offset().left + elemHidden.width(),
+					top: elemHidden.offset().top - $(".proposal-box").height(),
+					overflowY:
+						currentProposals.length > params.untilScrolling
+							? "scroll"
+							: "hidden",
+					height: $(".proposal-item").height() * params.untilScrolling + 10,
+				});
+			};
+
+			const setSelectedItem = function (index) {
+				$("ul.proposal-list li").removeClass("selected");
+				$(
+					`ul.proposal-list li:eq(${Math.abs(index % currentProposals.length)})`
+				).addClass("selected");
+			};
+
+			_input.keydown(function (e) {
+				$("#athidden").text(_input.val());
+				switch (e.which) {
+					case 38: // Up arrow
+						e.preventDefault();
+						if (currentSelection > 0) {
+							currentSelection--;
+						} else {
+							currentSelection = currentProposals.length - 1;
 						}
-					}
-				} else {
-					proposalList.empty();
+						setSelectedItem(currentSelection);
+						break;
+
+					case 40: // Down arrow
+						e.preventDefault();
+						if (currentSelection < currentProposals.length - 1) {
+							currentSelection++;
+						} else {
+							currentSelection = 0;
+						}
+						setSelectedItem(currentSelection);
+						break;
+
+					case 9: // Tab
+						e.preventDefault();
+						const text = $(
+							`ul.proposal-list li:eq(${currentSelection})`
+						).html();
+						if (!!text) {
+							_input.val(addSelectedText(_input.val(), text));
+						}
+						clean();
+						break;
+
+					case 27: // Esc button
+						clean();
+						break;
 				}
-			}
+			});
+
+			_input.bind("paste keyup", function (e) {
+				$("#athidden").text(_input.val());
+				if (e.which != 13 && e.which != 27 && e.which != 38 && e.which != 40) {
+					clean();
+
+					const wordsArr = _input.val().split(" ");
+					if (_input.val() !== "" && wordsArr[wordsArr.length - 1].length > 0) {
+						const regexp = new RegExp(`^${wordsArr[wordsArr.length - 1]}+`);
+						proposalList.empty();
+
+						for (const hint in params.hints) {
+							if (regexp.test(params.hints[hint])) {
+								currentProposals.push(params.hints[hint]);
+								const proposalItem = $("<li></li>")
+									.addClass("proposal-item")
+									.html(params.hints[hint])
+									.click(function () {
+										_input.val(addSelectedText(_input.val(), $(this).html()));
+										clean();
+									})
+									.mouseenter(function () {
+										$(this).addClass("selected");
+									})
+									.mouseleave(function () {
+										$(this).removeClass("selected");
+									});
+								proposalList.append(proposalItem);
+							}
+						}
+						if (currentProposals.length > 0) {
+							$(".proposal-box").show();
+						}
+						setSelectedItem(currentSelection);
+					} else {
+						clean();
+					}
+				}
+				setProposalsPosition();
+			});
+
+			proposals.insertBefore(_input);
 		});
-
-		_input.blur(function (e) {
-			currentSelection = -1;
-		});
-
-		proposals.insertBefore(_input);
-
-		// this.on({
-		// 	input: function (ev) {
-		// 		const text = ev.target.value;
-		// 		// Copy the text to hidden element
-		// 		$(`#${elemHidden}`).text(text);
-
-		// 		//Verify if new word starts with "#"
-		// 		const textArr = text.split(" ");
-		// 		console.log({ textArr });
-		// 		const newWord = textArr[textArr - 1];
-		// 		console.log({ newWord });
-		// 		if (params.startsWith && newWord.startsWith(params.startsWith)) {
-		// 			console.log({ startsWith });
-		// 			suggests = hints.filter((hint) => hint.startsWith(params.startsWith));
-		// 			console.log({ suggests });
-		// 		}
-		// 	},
-		// });
+		return this;
 	};
 })(jQuery);
