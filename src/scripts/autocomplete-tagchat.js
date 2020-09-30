@@ -29,6 +29,7 @@
 
 			const clean = function () {
 				currentSelection = 0;
+				currentProposals = [];
 				proposalList.empty();
 				$(".proposal-box").hide();
 			};
@@ -66,7 +67,6 @@
 			};
 
 			const setSelectedItem = function (index) {
-				console.log({ index });
 				$("ul.proposal-list li").removeClass("selected");
 				$(
 					`ul.proposal-list li:eq(${Math.abs(index % currentProposals.length)})`
@@ -96,6 +96,10 @@
 						setSelectedItem(currentSelection);
 						break;
 
+					case 13: // Enter
+						clean();
+						return true;
+
 					case 9: // Tab
 						e.preventDefault();
 						const text = $(
@@ -121,7 +125,6 @@
 					const wordsArr = _input.val().split(" ");
 					if (_input.val() !== "" && wordsArr[wordsArr.length - 1].length > 0) {
 						const regexp = new RegExp(`^${wordsArr[wordsArr.length - 1]}+`);
-						proposalList.empty();
 
 						for (const hint in Tag.list) {
 							if (regexp.test(Tag.list[hint])) {
@@ -153,7 +156,6 @@
 				}
 				setProposalsPosition();
 			});
-
 			proposals.insertBefore(_input);
 		});
 		return this;
