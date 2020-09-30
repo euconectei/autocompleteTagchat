@@ -41,18 +41,32 @@
 			};
 
 			const setProposalsPosition = function () {
-				$(".proposal-box").css({
+				const elemProposal = $(".proposal-box");
+				elemProposal.removeAttr("style");
+				elemProposal.css({
 					left: elemHidden.offset().left + elemHidden.width(),
-					top: elemHidden.offset().top - $(".proposal-box").height(),
-					overflowY:
-						currentProposals.length > params.untilScrolling
-							? "scroll"
-							: "hidden",
-					height: $(".proposal-item").height() * params.untilScrolling + 10,
+					top: elemHidden.offset().top - $(".proposal-box").height() - 10,
+					overflow: "auto",
+					maxHeight: "90vh",
+					// width: $("proposal-list").width(),
 				});
+
+				const overflowViewport =
+					document.body.offsetWidth <
+					elemProposal.offset().left + elemProposal.width()
+						? true
+						: false;
+
+				if (overflowViewport) {
+					elemProposal.css({
+						left: "auto",
+						right: 5,
+					});
+				}
 			};
 
 			const setSelectedItem = function (index) {
+				console.log({ index });
 				$("ul.proposal-list li").removeClass("selected");
 				$(
 					`ul.proposal-list li:eq(${Math.abs(index % currentProposals.length)})`
@@ -109,17 +123,18 @@
 						const regexp = new RegExp(`^${wordsArr[wordsArr.length - 1]}+`);
 						proposalList.empty();
 
-						for (const hint in params.hints) {
-							if (regexp.test(params.hints[hint])) {
-								currentProposals.push(params.hints[hint]);
+						for (const hint in Tag.list) {
+							if (regexp.test(Tag.list[hint])) {
+								currentProposals.push(Tag.list[hint]);
 								const proposalItem = $("<li></li>")
 									.addClass("proposal-item")
-									.html(params.hints[hint])
+									.html(Tag.list[hint])
 									.click(function () {
 										_input.val(addSelectedText(_input.val(), $(this).html()));
 										clean();
 									})
 									.mouseenter(function () {
+										$("ul.proposal-list li").removeClass("selected");
 										$(this).addClass("selected");
 									})
 									.mouseleave(function () {
